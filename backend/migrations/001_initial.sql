@@ -287,6 +287,100 @@ ALTER TABLE ONLY public.adoptions
 
 
 --
+-- Name: reviews / review_tasks / pair_corrections; Type: TABLE; Schema: public; Owner: -
+-- 缺测复核：冻结名单与已知分，按缺项可达取值计算全员平均改善区间，并按名额派补查。
+--
+
+CREATE TABLE public.reviews (
+    id integer NOT NULL,
+    evaluation_id integer NOT NULL,
+    threshold double precision NOT NULL,
+    slots integer NOT NULL,
+    state character varying(20),
+    verdict character varying(20),
+    error text,
+    result json
+);
+
+CREATE SEQUENCE public.reviews_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER SEQUENCE public.reviews_id_seq OWNED BY public.reviews.id;
+ALTER TABLE ONLY public.reviews ALTER COLUMN id SET DEFAULT nextval('public.reviews_id_seq'::regclass);
+ALTER TABLE ONLY public.reviews ADD CONSTRAINT reviews_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.reviews
+    ADD CONSTRAINT reviews_evaluation_id_fkey FOREIGN KEY (evaluation_id) REFERENCES public.evaluations(id);
+
+CREATE TABLE public.review_tasks (
+    id integer NOT NULL,
+    review_id integer NOT NULL,
+    code character varying(60) NOT NULL,
+    team character varying(40),
+    missing character varying(20) NOT NULL,
+    state character varying(20),
+    dispatch_key character varying(120) NOT NULL,
+    request_key character varying(120),
+    slot_no integer,
+    attempts integer,
+    created character varying(40),
+    updated character varying(40),
+    note text
+);
+
+CREATE SEQUENCE public.review_tasks_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER SEQUENCE public.review_tasks_id_seq OWNED BY public.review_tasks.id;
+ALTER TABLE ONLY public.review_tasks ALTER COLUMN id SET DEFAULT nextval('public.review_tasks_id_seq'::regclass);
+ALTER TABLE ONLY public.review_tasks ADD CONSTRAINT review_tasks_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.review_tasks
+    ADD CONSTRAINT review_tasks_unique_dispatch UNIQUE (review_id, dispatch_key);
+ALTER TABLE ONLY public.review_tasks
+    ADD CONSTRAINT review_tasks_unique_slot UNIQUE (review_id, slot_no);
+ALTER TABLE ONLY public.review_tasks
+    ADD CONSTRAINT review_tasks_review_id_fkey FOREIGN KEY (review_id) REFERENCES public.reviews(id);
+
+CREATE TABLE public.pair_corrections (
+    id integer NOT NULL,
+    review_id integer,
+    pair_id integer NOT NULL,
+    code character varying(60),
+    field character varying(10),
+    old_value double precision,
+    new_value double precision,
+    source character varying(120),
+    actor character varying(100),
+    created character varying(40),
+    late boolean
+);
+
+CREATE SEQUENCE public.pair_corrections_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER SEQUENCE public.pair_corrections_id_seq OWNED BY public.pair_corrections.id;
+ALTER TABLE ONLY public.pair_corrections ALTER COLUMN id SET DEFAULT nextval('public.pair_corrections_id_seq'::regclass);
+ALTER TABLE ONLY public.pair_corrections ADD CONSTRAINT pair_corrections_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.pair_corrections
+    ADD CONSTRAINT pair_corrections_review_id_fkey FOREIGN KEY (review_id) REFERENCES public.reviews(id);
+ALTER TABLE ONLY public.pair_corrections
+    ADD CONSTRAINT pair_corrections_pair_id_fkey FOREIGN KEY (pair_id) REFERENCES public.pairs(id);
+
+--
 -- PostgreSQL database dump complete
 --
 
